@@ -7,26 +7,35 @@ import PostForm from "./components/PostForm";
 import PostFilter from "./components/PostFilter";
 import MyModal from "./components/MyModal/MyModal";
 import MyButton from "./components/button/MyButton";
+import Loader from "./components/Loader/Loader";
 import { usePosts } from "./hooks/usePosts";
+import { useFetching } from "./hooks/useFetching";
 import PostService from "./API/PostService";
+import { usePaggination } from "./hooks/usePaggination";
+import getPageCount from "./components/utils/pages";
+
 import axios from "axios";
 
 function App() {
   const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState({ sort: "", query: "" });
   const [modal, setModal] = useState(false);
-  
-  const [totalCount, setTotalCount] = useState(0);
-  const [limit, setLimit]= useState(10);
-  const [page, setPage]= useState(1);
+
+  const [totalPages, setTotalPages] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [page, setPage] = useState(1);
 
   const sortedAndSearchedPost = usePosts(posts, filter.sort, filter.query);
 
   const [fetchPosts, isPostLoading, postError] = useFetching(async () => {
-    const response = await axios.PostService.getAll(limit, page);
+    const response = await PostService.getAll(limit, page);
     setPosts(response.data);
-    setTotalCount(response.headers['x-total-count'])
+    const totalCount = response.headers[`x-total-count`];
+    setTotalPages(getPageCount(totalCount, limit));
   });
+
+  let pagesArray = usePaggination(totalPages);
+  console.log(page, sortedAndSearchedPost);
 
   useEffect(() => {
     fetchPosts();
@@ -66,6 +75,9 @@ function App() {
           title="Post list about JS"
         />
       )}
+      {pagesArray.map((p) => (
+        <MyButton onClick={() => setPage(p)}>{p}</MyButton>
+      ))}
     </div>
   );
 }
